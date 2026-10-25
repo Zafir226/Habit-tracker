@@ -171,6 +171,9 @@
 
     <!-- AUDIO & PHONE LINK HUD CONTROLS -->
     <div class="fixed top-4 right-4 z-40 flex items-center gap-2">
+        <button id="cloud-sync-btn" type="button" class="bg-cp-card/90 border border-cp-cyan px-3 py-1.5 clip-corner-sm backdrop-blur text-xs text-cp-cyan font-mono flex items-center gap-1.5 hover:bg-cp-card transition-colors">
+        <span>☁️</span> DRIVE: <span id="sync-status" class="text-gray-400">CONNECT</span>
+      </button>
         <button id="notify-link-btn" onclick="openNotifyModal()" class="bg-cp-card/90 border border-cp-yellow px-3 py-1.5 clip-corner-sm backdrop-blur text-xs text-cp-yellow flex items-center gap-1.5 hover:bg-cp-yellow hover:text-black transition-all font-mono shadow-[0_0_10px_rgba(252,238,10,0.3)]">
             <span class="animate-pulse">📲</span> PHONE UPLINK: <span id="phone-link-status">ONLINE</span>
         </button>
@@ -2234,8 +2237,115 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadInitialState();
             updateHUD();
+            window.addEventListener('storage', () => {
+      if (window.saveHabitsToDrive) window.saveHabitsToDrive();
+    });
         });
     </script>
+    <script>
+/* GOOGLE DRIVE SYNC SYSTEM */
+const CLIENT_ID = '679766029527-3qo2r19tpek4a62m6lheo3fl9m1rdsil.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+
+let tokenClient;
+let accessToken = null;
+let habitFileId = null;
+
+window.addEventListener('load', () => {
+  if (typeof google === 'undefined') return;
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: async (resp) => {
+      if (resp.error) {
+        console.error('Google Auth Error:', resp);
+        return;
+      }
+      accessToken = resp.access_token;
+      const statusEl = document.getElementById('sync-status');
+      if (statusEl) statusEl.textContent = 'SYNCING...';
+      await loadFromDrive();
+    },
+  });
+
+  const syncBtn = document.getElementById('cloud-sync-btn');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', () => {
+      tokenClient.requestAccessToken({ prompt: '' });
+    });
+  }
+});
+
+async function loadFromDrive() {
+  try {
+    const query = "name = 'habits.json' and 'appDataFolder' in parents and trashed = false";
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&spaces=appDataFolder&fields=files(id,name)`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const data = await res.json();
+
+    if (data.files && data.files.length > 0) {
+      habitFileId = data.files[0].id;
+      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${habitFileId}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const driveHabits = await fileRes.json();
+
+      localStorage.setItem('habits', JSON.stringify(driveHabits));
+      location.reload();
+    } else {
+      const localData = JSON.parse(localStorage.getItem('habits') || '[]');
+      await createDriveFile(localData);
+      const statusEl = document.getElementById('sync-status');
+      if (statusEl) statusEl.textContent = 'CONNECTED';
+    }
+  } catch (err) {
+    console.error('Drive Load Error:', err);
+    const statusEl = document.getElementById('sync-status');
+    if (statusEl) statusEl.textContent = 'ERROR';
+  }
+}
+
+async function createDriveFile(content) {
+  const metadata = {
+    name: 'habits.json',
+    parents: ['appDataFolder']
+  };
+
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', new Blob([JSON.stringify(content)], { type: 'application/json' }));
+
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form
+  });
+  const file = await res.json();
+  habitFileId = file.id;
+}
+
+window.saveHabitsToDrive = async function() {
+  if (!accessToken || !habitFileId) return;
+
+  try {
+    const habitsData = localStorage.getItem('habits') || '[]';
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${habitFileId}?uploadType=media`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: habitsData
+    });
+    const statusEl = document.getElementById('sync-status');
+    if (statusEl) statusEl.textContent = 'SAVED';
+  } catch (err) {
+    console.error('Drive Save Error:', err);
+  }
+};
+</script>
 </body>
 </html>
 ```eof
