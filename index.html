@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER_PULSE // Night City Operative Habit OS & Telemetry</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js & Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cp: {
+                            bg: '#0a0a10',
+                            card: '#12131f',
+                            cardDark: '#0b0c14',
+                            border: '#1f2238',
+                            cyan: '#00f0ff',
+                            yellow: '#fcee0a',
+                            magenta: '#ff0055',
+                            green: '#05ffa1',
+                            purple: '#9d00ff',
+                            orange: '#ff8800',
+                            muted: '#656b8a'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Share Tech Mono"', 'monospace'],
+                        display: ['"Chakra Petch"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --neon-cyan: #00f0ff;
+            --neon-yellow: #fcee0a;
+            --neon-magenta: #ff0055;
+            --neon-green: #05ffa1;
+            --neon-orange: #ff8800;
+        }
+
+        body {
+            background-color: #07070d;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(255, 0, 85, 0.12) 0%, transparent 60%),
+                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+                linear-gradient(rgba(10, 10, 16, 0.95), rgba(7, 7, 13, 0.98)),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 240, 255, 0.015) 2px, rgba(0, 240, 255, 0.015) 4px);
+            color: #d1d5db;
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 99;
+            opacity: 0.35;
+        }
+
+        /* Cyberpunk Chamfered Corners */
+        .clip-corner {
+            clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+        }
+        .clip-corner-sm {
+            clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+        }
+        .clip-corner-left {
+            clip-path: polygon(14px 0, 100% 0, 100% 100%, 0 100%, 0 14px);
+        }
+
+        /* Neon Glows & Borders */
+        .neon-border-cyan {
+            border: 1px solid var(--neon-cyan);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.25), inset 0 0 12px rgba(0, 240, 255, 0.1);
+        }
+        .neon-border-yellow {
+            border: 1px solid var(--neon-yellow);
+            box-shadow: 0 0 12px rgba(252, 238, 10, 0.25), inset 0 0 12px rgba(252, 238, 10, 0.1);
+        }
+        .neon-border-magenta {
+            border: 1px solid var(--neon-magenta);
+            box-shadow: 0 0 12px rgba(255, 0, 85, 0.25), inset 0 0 12px rgba(255, 0, 85, 0.1);
+        }
+        .neon-border-green {
+            border: 1px solid var(--neon-green);
+            box-shadow: 0 0 12px rgba(5, 255, 161, 0.25), inset 0 0 12px rgba(5, 255, 161, 0.1);
+        }
+        .neon-border-orange {
+            border: 1px solid var(--neon-orange);
+            box-shadow: 0 0 12px rgba(255, 136, 0, 0.25), inset 0 0 12px rgba(255, 136, 0, 0.1);
+        }
+
+        .neon-glow-cyan { text-shadow: 0 0 8px rgba(0, 240, 255, 0.65); }
+        .neon-glow-yellow { text-shadow: 0 0 8px rgba(252, 238, 10, 0.65); }
+        .neon-glow-magenta { text-shadow: 0 0 8px rgba(255, 0, 85, 0.65); }
+        .neon-glow-green { text-shadow: 0 0 8px rgba(5, 255, 161, 0.65); }
+
+        /* Floating XP animation */
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(0) scale(0.8); }
+            20% { opacity: 1; transform: translateY(-10px) scale(1.15); }
+            80% { opacity: 1; transform: translateY(-40px) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+        }
+        .floating-xp {
+            animation: floatUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            pointer-events: none;
+            position: absolute;
+            z-index: 100;
+        }
+
+        /* Glitch header effect */
+        .glitch-title {
+            position: relative;
+        }
+        .glitch-title::before, .glitch-title::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        .glitch-title::before {
+            left: 2px;
+            text-shadow: -2px 0 var(--neon-magenta);
+            clip: rect(24px, 550px, 90px, 0);
+            animation: glitch-anim 4s infinite linear alternate-reverse;
+        }
+        .glitch-title::after {
+            left: -2px;
+            text-shadow: -2px 0 var(--neon-cyan);
+            clip: rect(85px, 550px, 140px, 0);
+            animation: glitch-anim 3s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim {
+            0% { clip: rect(15px, 9999px, 35px, 0); }
+            25% { clip: rect(65px, 9999px, 85px, 0); }
+            50% { clip: rect(10px, 9999px, 45px, 0); }
+            75% { clip: rect(40px, 9999px, 60px, 0); }
+            100% { clip: rect(80px, 9999px, 98px, 0); }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0c14; }
+        ::-webkit-scrollbar-thumb { background: #262a42; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f0ff; }
+    </style>
+</head>
+<body class="relative flex flex-col min-h-screen text-gray-200">
+    <div class="scanlines"></div>
+
+    <!-- AUDIO & PHONE LINK HUD CONTROLS -->
+    <div class="fixed top-4 right-4 z-40 flex items-center gap-2">
+        <button id="notify-link-btn" onclick="openNotifyModal()" class="bg-cp-card/90 border border-cp-yellow px-3 py-1.5 clip-corner-sm backdrop-blur text-xs text-cp-yellow flex items-center gap-1.5 hover:bg-cp-yellow hover:text-black transition-all font-mono shadow-[0_0_10px_rgba(252,238,10,0.3)]">
+            <span class="animate-pulse">📲</span> PHONE UPLINK: <span id="phone-link-status">ONLINE</span>
+        </button>
+        <button id="sound-btn" onclick="toggleAudio()" class="bg-cp-card/90 border border-cp-border px-3 py-1.5 clip-corner-sm backdrop-blur text-xs text-cp-cyan flex items-center gap-1.5 hover:text-cp-yellow transition-colors font-mono">
+            <span id="sound-icon">🔊</span> AUDIO: <span id="sound-status">ARMED</span>
+        </button>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="container mx-auto px-4 py-6 max-w-7xl flex-grow flex flex-col">
+
+        <!-- ONBOARDING BANNER (Walkthrough) -->
+        <div id="walkthrough-banner" class="mb-6 bg-gradient-to-r from-cp-card to-cp-cardDark border-l-4 border-cp-yellow p-4 clip-corner relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg shadow-black/40">
+            <div class="flex items-start gap-3">
+                <span class="text-cp-yellow text-2xl font-display font-black animate-pulse">⚠</span>
+                <div>
+                    <h3 class="font-display font-bold text-cp-yellow text-sm tracking-wider uppercase">OPERATIVE ONBOARDING // REAL-TIME ALERT PROTOCOLS ARMED</h3>
+                    <p class="text-xs text-gray-300 font-mono mt-0.5">
+                        <span class="text-cp-cyan font-bold">1.</span> Direct reminders & hard deadlines are monitored live. &bull; 
+                        <span class="text-cp-magenta font-bold">2.</span> Click <span class="text-cp-yellow font-bold">[📲 PHONE UPLINK]</span> to pair push alerts or mobile webhooks. &bull; 
+                        <span class="text-cp-green font-bold">3.</span> Check alarms before timeout to prevent streak forfeiture.
+                    </p>
+                </div>
+            </div>
+            <button onclick="dismissBanner()" class="text-xs px-3 py-1 border border-cp-yellow text-cp-yellow hover:bg-cp-yellow hover:text-black transition-all clip-corner-sm uppercase font-mono tracking-wider shrink-0">
+                ACKNOWLEDGE
+            </button>
+        </div>
+
+        <!-- DEADLINE ALERT TICKER (Appears if active deadlines or reminders are nearing) -->
+        <div id="deadline-ticker" class="hidden mb-4 bg-cp-magenta/10 border border-cp-magenta p-3 clip-corner flex items-center justify-between gap-3 text-xs font-mono">
+            <div class="flex items-center gap-2 text-cp-magenta">
+                <span class="animate-ping font-black">⚡</span>
+                <span class="font-bold uppercase tracking-wider">URGENT DEADLINE WARNING:</span>
+                <span id="deadline-ticker-text" class="text-white">Calculating imminent protocols...</span>
+            </div>
+            <span class="text-[10px] text-gray-400 uppercase">SYS_TELEMETRY</span>
+        </div>
+
+        <!-- TOP HUD: PROFILE & ACTION BAR -->
+        <header class="mb-6 grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            
+            <!-- OPERATIVE ID & RANK -->
+            <div class="lg:col-span-8 bg-cp-card border border-cp-border p-5 clip-corner relative flex flex-col justify-between overflow-hidden">
+                <div class="absolute -right-8 -bottom-8 text-8xl font-black text-white/[0.02] font-display pointer-events-none select-none">
+                    CP77
+                </div>
+
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-gradient-to-br from-cp-magenta/30 via-cp-cyan/20 to-black border-2 border-cp-cyan rounded flex items-center justify-center text-2xl relative shadow-lg shadow-cp-cyan/20">
+                            <span id="player-avatar">⚡</span>
+                            <div class="absolute -bottom-1.5 -right-1.5 bg-black border border-cp-yellow text-cp-yellow font-display text-[10px] font-bold px-1.5 py-0.5">
+                                LVL <span id="player-level">1</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 class="text-2xl font-display font-black text-white glitch-title tracking-wider" data-text="CYBER_PULSE">CYBER_PULSE</h1>
+                                <span class="bg-cp-cyan/10 border border-cp-cyan text-cp-cyan text-[10px] px-2 py-0.5 font-bold uppercase tracking-widest clip-corner-sm">OS_VER_2.5_ALERT</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-xs text-gray-400">OPERATIVE CLASSIFICATION:</span>
+                                <span id="player-rank" class="text-xs font-display font-bold text-cp-yellow tracking-wider uppercase">STREET RUNNER</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Streak & Multiplier HUD Badge -->
+                    <div class="flex items-center gap-3 bg-black/60 border border-cp-magenta/40 px-3 py-2 rounded">
+                        <div class="text-center">
+                            <span class="block text-[10px] text-gray-400 font-mono uppercase">SYNAPSE STREAK</span>
+                            <div class="flex items-center justify-center gap-1">
+                                <span class="text-cp-magenta font-display text-lg font-black" id="streak-days">0</span>
+                                <span class="text-xs text-cp-magenta">DAYS</span>
+                            </div>
+                        </div>
+                        <div class="h-6 w-px bg-cp-border"></div>
+                        <div class="text-center">
+                            <span class="block text-[10px] text-gray-400 font-mono uppercase">MULTIPLIER</span>
+                            <span id="streak-mult" class="text-cp-green font-display text-lg font-black">1.0x</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- XP PROGRESS BAR -->
+                <div>
+                    <div class="flex justify-between items-center text-xs font-mono mb-1.5">
+                        <span class="text-gray-400 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-cp-cyan inline-block animate-ping"></span>
+                            NEURAL XP PROTOCOL
+                        </span>
+                        <span class="text-cp-cyan font-bold">
+                            <span id="player-current-xp">0</span> / <span id="player-needed-xp">200</span> XP
+                        </span>
+                    </div>
+                    <div class="w-full h-3.5 bg-black/80 border border-cp-cyan/30 rounded-none overflow-hidden relative p-[1px]">
+                        <div id="player-xp-bar" class="h-full bg-gradient-to-r from-cp-magenta via-cp-cyan to-cp-green transition-all duration-500 ease-out shadow-[0_0_12px_rgba(0,240,255,0.7)]" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROMINENT NEW PROTOCOL BUTTON & CONTROLS -->
+            <div class="lg:col-span-4 bg-cp-card border border-cp-border p-5 clip-corner flex flex-col justify-between gap-3">
+                <div>
+                    <span class="text-[11px] text-gray-400 uppercase tracking-widest font-mono block mb-1">COMMAND PROTOCOLS</span>
+                    <p class="text-xs text-gray-300">Set routines with real-time phone alerts, chrono-deadlines & telemetry.</p>
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <button onclick="openModal()" class="w-full py-3 px-4 bg-gradient-to-r from-cp-cyan to-cp-green text-black font-display font-black text-sm tracking-wider uppercase clip-corner flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(0,240,255,0.4)] cursor-pointer">
+                        <span class="text-lg font-black">+</span> INITIALIZE NEW PROTOCOL
+                    </button>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="openNotifyModal()" class="py-2 px-3 bg-black/60 border border-cp-yellow/60 hover:border-cp-yellow hover:text-cp-yellow text-xs font-mono uppercase text-gray-300 transition-colors clip-corner-sm flex items-center justify-center gap-1.5">
+                            <span>📲</span> PHONE DISPATCH
+                        </button>
+                        <button onclick="openAchievementsModal()" class="py-2 px-3 bg-black/60 border border-cp-border hover:border-cp-magenta hover:text-cp-magenta text-xs font-mono uppercase text-gray-300 transition-colors clip-corner-sm flex items-center justify-center gap-1.5">
+                            <span>🏆</span> AUGMENTS (<span id="unlocked-achievements-count">0</span>)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW SELECTION TABS & SEARCH/FILTER BAR -->
+        <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6">
+            <!-- Navigation Switcher -->
+            <div class="flex items-center gap-2 bg-black/60 p-1 border border-cp-border clip-corner-sm">
+                <button onclick="switchTab('daily')" id="tab-daily" class="px-5 py-2 font-display text-xs font-bold uppercase transition-all bg-cp-cyan text-black clip-corner-sm shadow-[0_0_10px_rgba(0,240,255,0.3)]">
+                    [ DAILY EXECUTION ]
+                </button>
+                <button onclick="switchTab('deadlines')" id="tab-deadlines" class="px-5 py-2 font-display text-xs font-bold uppercase transition-all text-gray-400 hover:text-white clip-corner-sm">
+                    [ DEADLINES & TIMERS ]
+                </button>
+                <button onclick="switchTab('all')" id="tab-all" class="px-5 py-2 font-display text-xs font-bold uppercase transition-all text-gray-400 hover:text-white clip-corner-sm">
+                    [ ALL DIRECTIVES ]
+                </button>
+                <button onclick="switchTab('analytics')" id="tab-analytics" class="px-5 py-2 font-display text-xs font-bold uppercase transition-all text-gray-400 hover:text-white clip-corner-sm">
+                    [ TELEMETRY & CHARTS ]
+                </button>
+            </div>
+
+            <!-- Quick Filters (For Habits) -->
+            <div id="filter-controls" class="flex flex-wrap items-center gap-2">
+                <div class="relative">
+                    <input type="text" id="habit-search" oninput="handleSearch(this.value)" placeholder="SEARCH PROTOCOLS..." class="bg-cp-card border border-cp-border text-white text-xs px-3 py-2 pl-7 font-mono rounded-none focus:outline-none focus:border-cp-cyan w-40 sm:w-48 placeholder-gray-600">
+                    <span class="absolute left-2.5 top-2 text-xs text-gray-500">⌕</span>
+                </div>
+                <select id="category-filter" onchange="handleCategoryFilter(this.value)" class="bg-cp-card border border-cp-border text-white text-xs px-2.5 py-2 font-mono focus:outline-none focus:border-cp-cyan">
+                    <option value="ALL">ALL STATS</option>
+                    <option value="STRENGTH">COMBAT / STRENGTH</option>
+                    <option value="TECH">TECH / INTEL</option>
+                    <option value="AGILITY">AGILITY / COND</option>
+                    <option value="DISCIPLINE">DISCIPLINE / FOCUS</option>
+                </select>
+                <select id="status-filter" onchange="handleStatusFilter(this.value)" class="bg-cp-card border border-cp-border text-white text-xs px-2.5 py-2 font-mono focus:outline-none focus:border-cp-cyan">
+                    <option value="ALL">ALL STATUS</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- MAIN VIEW 1: DAILY OPS (CALENDAR STRIP & DAY TASKS) -->
+        <section id="view-daily" class="space-y-6">
+            <!-- CALENDAR DAY SELECTOR STRIP -->
+            <div class="bg-cp-card border border-cp-border p-4 clip-corner">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-gray-400 font-mono uppercase tracking-widest flex items-center gap-1.5">
+                        <span class="text-cp-cyan">◈</span> WEEKLY CHRONO-MATRIX // TARGET DAY
+                    </span>
+                    <button onclick="selectToday()" class="text-[11px] text-cp-cyan hover:underline font-mono uppercase tracking-wider">
+                        [ REVERT TO CURRENT CYCLE ]
+                    </button>
+                </div>
+                <div class="grid grid-cols-7 gap-2" id="week-strip">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- DAILY HABIT CARDS CONTAINER -->
+            <div>
+                <div class="flex items-center justify-between mb-3 border-b border-cp-border pb-2">
+                    <h2 class="text-base font-display font-bold text-cp-cyan flex items-center gap-2">
+                        <span>▶</span> SCHEDULED PROTOCOLS FOR <span id="selected-day-label" class="text-white uppercase">TODAY</span>
+                    </h2>
+                    <span id="daily-completion-badge" class="text-xs font-mono text-gray-400">0 / 0 COMPLETED</span>
+                </div>
+
+                <!-- Habits List -->
+                <div id="daily-habits-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Populated by JavaScript -->
+                </div>
+
+                <!-- EMPTY STATE -->
+                <div id="daily-empty-state" class="hidden text-center py-16 px-4 bg-cp-card/50 border-2 border-dashed border-cp-border clip-corner">
+                    <div class="text-4xl mb-3 text-cp-muted">⚡</div>
+                    <h3 class="text-lg font-display font-bold text-white uppercase tracking-wider">NO ACTIVE PROTOCOLS FOUND</h3>
+                    <p class="text-xs text-gray-400 font-mono mt-1 max-w-md mx-auto mb-5">
+                        There are no directives configured for this day or matching your active filters. Calibrate your cybernetics now.
+                    </p>
+                    <button onclick="openModal()" class="inline-flex items-center gap-2 px-6 py-3 bg-cp-cyan text-black font-display font-bold text-xs uppercase clip-corner hover:bg-cp-yellow transition-colors shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+                        + INITIALIZE PROTOCOL
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- MAIN VIEW 2: DEADLINES & CHRONO-RADAR -->
+        <section id="view-deadlines" class="hidden space-y-6">
+            <div class="bg-gradient-to-r from-cp-card to-cp-cardDark border border-cp-magenta p-5 clip-corner flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-[0_0_20px_rgba(255,0,85,0.15)]">
+                <div>
+                    <h2 class="text-lg font-display font-black text-cp-magenta uppercase tracking-wider flex items-center gap-2">
+                        <span>⏳</span> ACTIVE CHRONO-DEADLINES & REMINDER MATRIX
+                    </h2>
+                    <p class="text-xs text-gray-400 font-mono mt-1">
+                        Track countdowns, impending timeouts, and trigger instant phone push notifications.
+                    </p>
+                </div>
+                <button onclick="testPhoneNotification()" class="px-4 py-2 bg-black border border-cp-yellow text-cp-yellow text-xs font-mono uppercase hover:bg-cp-yellow hover:text-black transition-colors clip-corner-sm flex items-center gap-2">
+                    <span>📡</span> TEST PHONE NOTIFICATION
+                </button>
+            </div>
+
+            <div id="deadlines-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Injected via JS -->
+            </div>
+        </section>
+
+        <!-- MAIN VIEW 3: ALL PROTOCOLS (MANAGEMENT VIEW) -->
+        <section id="view-all" class="hidden space-y-4">
+            <div class="flex items-center justify-between border-b border-cp-border pb-2">
+                <div>
+                    <h2 class="text-base font-display font-bold text-cp-magenta uppercase tracking-wider">ROUTINE DATABASE DIRECTORY</h2>
+                    <p class="text-xs text-gray-400 font-mono">Full listing of registered habits, days assigned, reminders, and reward telemetry.</p>
+                </div>
+                <button onclick="openModal()" class="px-4 py-2 bg-cp-magenta text-white font-display font-bold text-xs uppercase clip-corner-sm hover:brightness-110 transition-all">
+                    + ADD DIRECTIVE
+                </button>
+            </div>
+
+            <div id="all-habits-table" class="space-y-3">
+                <!-- Injected via JS -->
+            </div>
+
+            <div id="all-empty-state" class="hidden text-center py-16 px-4 bg-cp-card/50 border-2 border-dashed border-cp-border clip-corner">
+                <p class="text-sm text-gray-400 font-mono mb-4">NO PROTOCOLS INSTALLED IN DATABASE</p>
+                <button onclick="openModal()" class="px-5 py-2.5 bg-cp-cyan text-black font-display font-bold text-xs uppercase clip-corner">
+                    + INITIALIZE FIRST PROTOCOL
+                </button>
+            </div>
+        </section>
+
+        <!-- MAIN VIEW 4: TELEMETRY & CHARTS -->
+        <section id="view-analytics" class="hidden space-y-6">
+            <!-- TOP STATS COUNTERS -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 font-mono">
+                <div class="bg-cp-card border border-cp-cyan/40 p-4 clip-corner">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest block">LIFETIME XP</span>
+                    <span id="stat-lifetime-xp" class="text-2xl font-display font-black text-cp-cyan neon-glow-cyan">0</span>
+                </div>
+                <div class="bg-cp-card border border-cp-green/40 p-4 clip-corner">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest block">EXECUTIONS LOGGED</span>
+                    <span id="stat-executions" class="text-2xl font-display font-black text-cp-green neon-glow-green">0</span>
+                </div>
+                <div class="bg-cp-card border border-cp-yellow/40 p-4 clip-corner">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest block">LONGEST STREAK</span>
+                    <span id="stat-max-streak" class="text-2xl font-display font-black text-cp-yellow neon-glow-yellow">0</span>
+                </div>
+                <div class="bg-cp-card border border-cp-magenta/40 p-4 clip-corner">
+                    <span class="text-[10px] text-gray-400 uppercase tracking-widest block">EFFICIENCY RATING</span>
+                    <span id="stat-completion-rate" class="text-2xl font-display font-black text-cp-magenta neon-glow-magenta">0%</span>
+                </div>
+            </div>
+
+            <!-- CHARTS ROW -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- 7-Day Completion Velocity -->
+                <div class="lg:col-span-7 bg-cp-card border border-cp-border p-4 clip-corner flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3 border-b border-cp-border pb-2">
+                        <span class="text-xs font-display font-bold text-cp-cyan uppercase tracking-wider">7-DAY COMPLETION VELOCITY</span>
+                        <span class="text-[10px] font-mono text-gray-400">% OF SCHEDULED MET</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="weeklyBarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Attribute Stat Balance (Radar) -->
+                <div class="lg:col-span-5 bg-cp-card border border-cp-border p-4 clip-corner flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-3 border-b border-cp-border pb-2">
+                        <span class="text-xs font-display font-bold text-cp-yellow uppercase tracking-wider">CYBERNETIC ATTRIBUTE BALANCE</span>
+                        <span class="text-[10px] font-mono text-gray-400">RADAR MATRIX</span>
+                    </div>
+                    <div class="h-64 relative flex items-center justify-center">
+                        <canvas id="categoryRadarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- XP Growth Curve Line Chart -->
+                <div class="lg:col-span-12 bg-cp-card border border-cp-border p-4 clip-corner">
+                    <div class="flex items-center justify-between mb-3 border-b border-cp-border pb-2">
+                        <span class="text-xs font-display font-bold text-cp-magenta uppercase tracking-wider">XP HARVEST TIMELINE (LAST 14 DAYS)</span>
+                        <span class="text-[10px] font-mono text-gray-400">CHRONO SYNC</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="xpLineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- MODAL: INITIALIZE / EDIT PROTOCOL (WITH REMINDER & DEADLINE CONFIG) -->
+    <div id="habit-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-cp-card border-2 border-cp-cyan max-w-xl w-full p-6 clip-corner shadow-[0_0_40px_rgba(0,240,255,0.25)] relative max-h-[92vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex justify-between items-center border-b border-cp-cyan/40 pb-3 mb-5">
+                <div class="flex items-center gap-2">
+                    <span class="text-cp-cyan text-lg">⚡</span>
+                    <h3 id="modal-title" class="font-display font-black text-white text-lg tracking-wider uppercase">INITIALIZE NEW DIRECTIVE</h3>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-cp-magenta text-xl font-mono leading-none">&times;</button>
+            </div>
+
+            <!-- Form -->
+            <form id="habit-form" onsubmit="handleHabitSubmit(event)" class="space-y-4">
+                <input type="hidden" id="modal-habit-id" value="">
+
+                <!-- Name -->
+                <div>
+                    <label class="block text-xs font-mono text-cp-cyan uppercase tracking-wider mb-1">PROTOCOL IDENTIFIER / NAME *</label>
+                    <input type="text" id="modal-habit-name" required placeholder="e.g. Boxing Sparring / 5K Sprint / Deep Focus" class="w-full bg-black/70 border border-cp-border text-white text-sm p-3 font-mono focus:outline-none focus:border-cp-cyan focus:shadow-[0_0_10px_rgba(0,240,255,0.4)]">
+                </div>
+
+                <!-- Category & Glyph -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-mono text-cp-yellow uppercase tracking-wider mb-1">ATTRIBUTE DOMAIN *</label>
+                        <select id="modal-habit-category" class="w-full bg-black/70 border border-cp-border text-white text-xs p-3 font-mono focus:outline-none focus:border-cp-yellow">
+                            <option value="STRENGTH">COMBAT / STRENGTH</option>
+                            <option value="TECH">TECH / INTELLIGENCE</option>
+                            <option value="AGILITY">AGILITY / CONDITIONING</option>
+                            <option value="DISCIPLINE">DISCIPLINE / FOCUS</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-mono text-cp-magenta uppercase tracking-wider mb-1">CYBER GLYPH BADGE</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="modal-habit-glyph" maxlength="2" value="⚡" class="w-16 text-center bg-black/70 border border-cp-border text-white text-lg p-2 font-mono focus:outline-none focus:border-cp-magenta">
+                            <div class="flex gap-1">
+                                <button type="button" onclick="setGlyph('🥊')" class="p-2 bg-black border border-cp-border hover:border-cp-magenta text-sm">🥊</button>
+                                <button type="button" onclick="setGlyph('💻')" class="p-2 bg-black border border-cp-border hover:border-cp-magenta text-sm">💻</button>
+                                <button type="button" onclick="setGlyph('🏃')" class="p-2 bg-black border border-cp-border hover:border-cp-magenta text-sm">🏃</button>
+                                <button type="button" onclick="setGlyph('🧠')" class="p-2 bg-black border border-cp-border hover:border-cp-magenta text-sm">🧠</button>
+                                <button type="button" onclick="setGlyph('⚔')" class="p-2 bg-black border border-cp-border hover:border-cp-magenta text-sm">⚔</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REMINDERS & DEADLINES SECTION -->
+                <div class="bg-black/40 border border-cp-border p-3.5 clip-corner-sm space-y-3">
+                    <div class="flex items-center justify-between border-b border-cp-border/50 pb-2">
+                        <span class="text-xs font-display font-bold text-cp-yellow uppercase flex items-center gap-1.5">
+                            <span>⏰</span> CHRONO ALERTS & TARGET DEADLINE
+                        </span>
+                        <span class="text-[10px] text-cp-cyan font-mono">PHONE DISPATCH READY</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Daily Reminder Time -->
+                        <div>
+                            <label class="block text-[11px] font-mono text-gray-300 uppercase mb-1">
+                                🔔 DAILY REMINDER TIME
+                            </label>
+                            <input type="time" id="modal-habit-reminder" class="w-full bg-black/80 border border-cp-border text-cp-yellow text-xs p-2.5 font-mono focus:outline-none focus:border-cp-yellow">
+                            <span class="text-[10px] text-gray-500 font-mono mt-0.5 block">Trigger daily alarm on phone/browser</span>
+                        </div>
+
+                        <!-- Target Deadline Time -->
+                        <div>
+                            <label class="block text-[11px] font-mono text-gray-300 uppercase mb-1">
+                                ⏳ HARD DEADLINE TIME
+                            </label>
+                            <input type="time" id="modal-habit-deadline" class="w-full bg-black/80 border border-cp-border text-cp-magenta text-xs p-2.5 font-mono focus:outline-none focus:border-cp-magenta">
+                            <span class="text-[10px] text-gray-500 font-mono mt-0.5 block">Flagged overdue if incomplete</span>
+                        </div>
+                    </div>
+
+                    <!-- Target Date (Optional specific project deadline) -->
+                    <div>
+                        <label class="block text-[11px] font-mono text-gray-300 uppercase mb-1">
+                            📅 OPTIONAL CALENDAR DEADLINE DATE (MILESTONE)
+                        </label>
+                        <input type="date" id="modal-habit-deadline-date" class="w-full bg-black/80 border border-cp-border text-white text-xs p-2 font-mono focus:outline-none focus:border-cp-cyan">
+                    </div>
+                </div>
+
+                <!-- XP Tier -->
+                <div>
+                    <label class="block text-xs font-mono text-cp-green uppercase tracking-wider mb-1">XP REWARD DIFFICULTY TIER</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="xp_tier" value="25" class="peer hidden" checked>
+                            <div class="p-2 text-center border border-cp-border peer-checked:border-cp-green peer-checked:bg-cp-green/10 peer-checked:text-cp-green transition-all">
+                                <span class="block text-xs font-bold font-display">ROUTINE</span>
+                                <span class="text-[10px] text-gray-400">+25 XP</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="xp_tier" value="50" class="peer hidden">
+                            <div class="p-2 text-center border border-cp-border peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/10 peer-checked:text-cp-cyan transition-all">
+                                <span class="block text-xs font-bold font-display">STANDARD</span>
+                                <span class="text-[10px] text-gray-400">+50 XP</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="xp_tier" value="100" class="peer hidden">
+                            <div class="p-2 text-center border border-cp-border peer-checked:border-cp-yellow peer-checked:bg-cp-yellow/10 peer-checked:text-cp-yellow transition-all">
+                                <span class="block text-xs font-bold font-display">HARDCORE</span>
+                                <span class="text-[10px] text-gray-400">+100 XP</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="xp_tier" value="200" class="peer hidden">
+                            <div class="p-2 text-center border border-cp-border peer-checked:border-cp-magenta peer-checked:bg-cp-magenta/10 peer-checked:text-cp-magenta transition-all">
+                                <span class="block text-xs font-bold font-display">BOSS</span>
+                                <span class="text-[10px] text-gray-400">+200 XP</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Weekly Scheduling Days -->
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-mono text-gray-400 uppercase tracking-wider">EXECUTION SCHEDULE (DAYS OF THE WEEK) *</label>
+                        <button type="button" onclick="toggleAllDays()" class="text-[10px] text-cp-cyan hover:underline uppercase font-mono">
+                            TOGGLE ALL DAYS
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-1 font-mono">
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="1" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">MON</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="2" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">TUE</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="3" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">WED</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="4" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">THU</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="5" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">FRI</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="6" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">SAT</div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="checkbox" value="0" class="day-opt peer hidden">
+                            <div class="p-2 text-center border border-cp-border text-xs peer-checked:border-cp-cyan peer-checked:bg-cp-cyan/20 peer-checked:text-cp-cyan">SUN</div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="pt-4 flex items-center justify-end gap-3 border-t border-cp-border">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 border border-gray-600 text-gray-300 font-mono text-xs uppercase hover:bg-white/5 clip-corner-sm">
+                        ABORT
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 bg-cp-cyan text-black font-display font-black text-xs uppercase clip-corner hover:brightness-110 shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                        COMMIT DIRECTIVE
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: PHONE NOTIFICATION UPLINK & DISPATCH (PUSH / TELEGRAM / WEBHOOK) -->
+    <div id="notify-modal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-cp-card border-2 border-cp-yellow max-w-xl w-full p-6 clip-corner shadow-[0_0_40px_rgba(252,238,10,0.25)] relative max-h-[92vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-cp-yellow/30 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-cp-yellow text-xl">📲</span>
+                    <h3 class="font-display font-black text-white text-lg tracking-wider uppercase">PHONE NOTIFICATION RELAY CONFIG</h3>
+                </div>
+                <button onclick="closeNotifyModal()" class="text-gray-400 hover:text-white text-xl font-mono leading-none">&times;</button>
+            </div>
+
+            <div class="space-y-4 font-mono text-xs">
+                <!-- Method 1: Web Push Notifications -->
+                <div class="p-3 bg-black/60 border border-cp-border clip-corner-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold text-cp-cyan uppercase flex items-center gap-1.5">
+                            <span>📡</span> 1. BROWSER & MOBILE PUSH API
+                        </span>
+                        <span id="push-perm-badge" class="px-2 py-0.5 text-[10px] border border-gray-600 text-gray-400 uppercase">
+                            STATUS: UNKNOWN
+                        </span>
+                    </div>
+                    <p class="text-gray-400 text-[11px] mb-3">
+                        Enables native system notifications on your phone (Chrome/Edge/Safari on iOS 16.4+ / Android) whenever reminders or deadlines hit.
+                    </p>
+                    <button onclick="requestNotificationPermission()" class="w-full py-2 bg-cp-cyan text-black font-display font-black text-xs uppercase clip-corner-sm hover:brightness-110 transition-all">
+                        GRANT NOTIFICATION PERMISSION
+                    </button>
+                </div>
+
+                <!-- Method 2: Direct Telegram Bot Phone Ping (Zero setup required via bot) -->
+                <div class="p-3 bg-black/60 border border-cp-border clip-corner-sm">
+                    <span class="font-bold text-cp-green uppercase flex items-center gap-1.5 mb-1">
+                        <span>💬</span> 2. TELEGRAM INSTANT PHONE DISPATCH
+                    </span>
+                    <p class="text-gray-400 text-[11px] mb-2">
+                        Receive instant notifications to your phone via Telegram! Enter your Telegram Bot Token & Chat ID, or use our webhook connector.
+                    </p>
+                    <div class="space-y-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-400 uppercase mb-0.5">TELEGRAM BOT TOKEN (OPTIONAL)</label>
+                            <input type="text" id="tg-bot-token" placeholder="123456789:ABCdefGhIJKlmNoPQRstuVWXyz" class="w-full bg-black/90 border border-cp-border text-white text-xs p-2 font-mono focus:border-cp-green focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-400 uppercase mb-0.5">TELEGRAM CHAT ID</label>
+                            <input type="text" id="tg-chat-id" placeholder="Your numerical Telegram Chat ID" class="w-full bg-black/90 border border-cp-border text-white text-xs p-2 font-mono focus:border-cp-green focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Method 3: Custom Webhook (Discord / n8n / Pushover / IFTTT) -->
+                <div class="p-3 bg-black/60 border border-cp-border clip-corner-sm">
+                    <span class="font-bold text-cp-magenta uppercase flex items-center gap-1.5 mb-1">
+                        <span>🔗</span> 3. GENERIC WEBHOOK PHONE RELAY
+                    </span>
+                    <p class="text-gray-400 text-[11px] mb-2">
+                        Forward habit reminder payloads via HTTP POST to Discord, Pushover, Zapier or IFTTT.
+                    </p>
+                    <input type="url" id="webhook-url" placeholder="https://maker.ifttt.com/trigger/... or Discord webhook" class="w-full bg-black/90 border border-cp-border text-white text-xs p-2 font-mono focus:border-cp-magenta focus:outline-none">
+                </div>
+
+                <!-- Save & Test Buttons -->
+                <div class="flex items-center justify-between pt-2">
+                    <button onclick="testPhoneNotification()" class="px-4 py-2 border border-cp-yellow text-cp-yellow hover:bg-cp-yellow hover:text-black transition-all clip-corner-sm uppercase font-bold text-xs">
+                        ⚡ SEND TEST PING TO PHONE
+                    </button>
+                    <button onclick="saveNotificationSettings()" class="px-5 py-2 bg-cp-yellow text-black hover:brightness-110 font-display font-black text-xs uppercase clip-corner-sm">
+                        SAVE CONFIG
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ACHIEVEMENTS / AUGMENTATIONS -->
+    <div id="achievements-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-cp-card border border-cp-magenta max-w-2xl w-full p-6 clip-corner shadow-[0_0_40px_rgba(255,0,85,0.2)] relative max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-cp-magenta/30 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-cp-magenta text-xl">🏆</span>
+                    <h3 class="font-display font-black text-white text-lg tracking-wider uppercase">CYBERNETIC AUGMENTS & ACHIEVEMENTS</h3>
+                </div>
+                <button onclick="closeAchievementsModal()" class="text-gray-400 hover:text-white text-xl font-mono leading-none">&times;</button>
+            </div>
+            <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION SYSTEM HUD -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none max-w-sm"></div>
+
+    <!-- CORE SCRIPTS -->
+    <script>
+        /* ==========================================================================
+           CYBER_PULSE AUDIO SYNTHESIZER (Web Audio API - Direct Hardware Synthesizer)
+           ========================================================================== */
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function playSynthSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const now = ctx.currentTime;
+
+                if (type === 'check') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(329.63, now);
+                    osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08);
+                    osc.frequency.exponentialRampToValueAtTime(1318.51, now + 0.16);
+
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'alarm') {
+                    // Urgent Cyber Alert Chime for Deadline & Reminder
+                    [880, 1174, 1760].forEach((freq, i) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(freq, now + (i * 0.1));
+                        gain.gain.setValueAtTime(0.15, now + (i * 0.1));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.1) + 0.15);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + (i * 0.1));
+                        osc.stop(now + (i * 0.1) + 0.16);
+                    });
+                } else if (type === 'levelup') {
+                    [220, 277.18, 329.63, 440].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(freq, now + (idx * 0.04));
+                        gain.gain.setValueAtTime(0.12, now + (idx * 0.04));
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now + (idx * 0.04));
+                        osc.stop(now + 0.75);
+                    });
+                } else if (type === 'click') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(200, now + 0.04);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                } else if (type === 'delete') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.exponentialRampToValueAtTime(60, now + 0.18);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                }
+            } catch (e) {
+                console.warn('Audio synthesis issue:', e);
+            }
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const statusEl = document.getElementById('sound-status');
+            const iconEl = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                statusEl.innerText = "ARMED";
+                iconEl.innerText = "🔊";
+                playSynthSound('click');
+            } else {
+                statusEl.innerText = "MUTED";
+                iconEl.innerText = "🔇";
+            }
+        }
+
+        /* ==========================================================================
+           DATA STATE & STORAGE WITH REMINDER/DEADLINE SPEC
+           ========================================================================== */
+        const STORAGE_KEY = 'CYBER_PULSE_STATE_V2';
+        const NOTIFY_CONFIG_KEY = 'CYBER_PULSE_NOTIFY_V1';
+
+        const RANKS = [
+            { level: 1, title: 'STREET RUNNER', avatar: '⚡' },
+            { level: 3, title: 'NETRUNNER ROOKIE', avatar: '💻' },
+            { level: 5, title: 'SUB-DERMAL MERC', avatar: '🦾' },
+            { level: 8, title: 'CYBER SAMURAI', avatar: '⚔' },
+            { level: 12, title: 'ARASAKA ASSASSIN', avatar: '🔥' },
+            { level: 18, title: 'SOLO LEGEND', avatar: '👑' },
+            { level: 25, title: 'NIGHT CITY DEITY', avatar: '💀' }
+        ];
+
+        const ACHIEVEMENTS = [
+            { id: 'first_blood', title: 'FIRST AUGMENTATION', desc: 'Execute your very first daily protocol.', icon: '🦾', test: (s) => s.totalExecutions >= 1 },
+            { id: 'level_five', title: 'COMBAT UPGRADE', desc: 'Reach Operative Level 5.', icon: '⚡', test: (s) => s.level >= 5 },
+            { id: 'streak_three', title: 'SYNAPSE OVERLOAD', desc: 'Hold a 3-day consecutive streak.', icon: '🔥', test: (s) => s.streak >= 3 },
+            { id: 'streak_seven', title: 'IRON DISCIPLINE', desc: 'Hold a 7-day consecutive streak.', icon: '🛡', test: (s) => s.streak >= 7 },
+            { id: 'hundred_xp', title: 'CORPO CONTRACTOR', desc: 'Accumulate 1,000 Lifetime XP.', icon: '💳', test: (s) => s.lifetimeXp >= 1000 },
+            { id: 'deadline_master', title: 'CHRONO SURGE', desc: 'Execute a protocol before its hard deadline.', icon: '⌛', test: (s) => s.onTimeCompletions >= 1 }
+        ];
+
+        let state = {
+            level: 1,
+            currentXp: 0,
+            lifetimeXp: 0,
+            streak: 0,
+            longestStreak: 0,
+            lastCompletedDate: null,
+            totalExecutions: 0,
+            onTimeCompletions: 0,
+            unlockedAchievements: [],
+            habits: [],
+            dailyHistory: {}
+        };
+
+        let notifyConfig = {
+            pushGranted: false,
+            tgBotToken: '',
+            tgChatId: '',
+            webhookUrl: '',
+            dispatchedReminders: {} // 'habitId_date_hour_minute': true
+        };
+
+        // Active filters & UI context
+        let currentTab = 'daily';
+        let selectedDateStr = getFormattedDate(new Date());
+        let searchQuery = '';
+        let filterCategory = 'ALL';
+        let filterStatus = 'ALL';
+
+        function getFormattedDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function loadInitialState() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+                try {
+                    state = { ...state, ...JSON.parse(raw) };
+                } catch(e) {
+                    console.error('Failed to parse state', e);
+                }
+            } else {
+                // Populate default habits with reminders & deadlines
+                state.habits = [
+                    {
+                        id: 'proto_1',
+                        name: 'Combat Sparring / Interval Drills',
+                        category: 'STRENGTH',
+                        glyph: '🥊',
+                        xp: 50,
+                        days: [1, 3, 5],
+                        reminderTime: '07:30',
+                        deadlineTime: '12:00',
+                        deadlineDate: '',
+                        completedDates: []
+                    },
+                    {
+                        id: 'proto_2',
+                        name: 'Netrunning / Tech Architecture Study',
+                        category: 'TECH',
+                        glyph: '💻',
+                        xp: 50,
+                        days: [1, 2, 3, 4, 5],
+                        reminderTime: '14:00',
+                        deadlineTime: '18:30',
+                        deadlineDate: '',
+                        completedDates: []
+                    },
+                    {
+                        id: 'proto_3',
+                        name: 'Reflex Calibration (Zone 2 Cardio)',
+                        category: 'AGILITY',
+                        glyph: '🏃',
+                        xp: 25,
+                        days: [2, 4, 6],
+                        reminderTime: '17:00',
+                        deadlineTime: '21:00',
+                        deadlineDate: '',
+                        completedDates: []
+                    },
+                    {
+                        id: 'proto_4',
+                        name: 'Sub-Neural Meditation / Deep Focus',
+                        category: 'DISCIPLINE',
+                        glyph: '🧠',
+                        xp: 25,
+                        days: [0, 1, 2, 3, 4, 5, 6],
+                        reminderTime: '21:30',
+                        deadlineTime: '23:59',
+                        deadlineDate: '',
+                        completedDates: []
+                    }
+                ];
+                saveState();
+            }
+
+            // Load Notification settings
+            const rawNotify = localStorage.getItem(NOTIFY_CONFIG_KEY);
+            if (rawNotify) {
+                try {
+                    notifyConfig = { ...notifyConfig, ...JSON.parse(rawNotify) };
+                } catch(e){}
+            }
+
+            // Sync permission status
+            if ('Notification' in window) {
+                notifyConfig.pushGranted = Notification.permission === 'granted';
+            }
+            updateNotifyStatusUI();
+
+            evaluateStreak();
+            checkAchievements(false);
+            initChronoDaemon(); // Start background reminder ticker
+        }
+
+        function saveState() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function saveNotificationSettings() {
+            notifyConfig.tgBotToken = document.getElementById('tg-bot-token').value.trim();
+            notifyConfig.tgChatId = document.getElementById('tg-chat-id').value.trim();
+            notifyConfig.webhookUrl = document.getElementById('webhook-url').value.trim();
+            localStorage.setItem(NOTIFY_CONFIG_KEY, JSON.stringify(notifyConfig));
+            closeNotifyModal();
+            createToast('PHONE UPLINK CHANNELS SYNCHRONIZED', 'yellow');
+        }
+
+        /* ==========================================================================
+           PHONE DISPATCH & NOTIFICATION ENGINE
+           ========================================================================== */
+        async function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                createToast('BROWSER DOES NOT SUPPORT PUSH NOTIFICATIONS', 'magenta');
+                return;
+            }
+
+            const permission = await Notification.requestPermission();
+            notifyConfig.pushGranted = permission === 'granted';
+            localStorage.setItem(NOTIFY_CONFIG_KEY, JSON.stringify(notifyConfig));
+            updateNotifyStatusUI();
+
+            if (permission === 'granted') {
+                createToast('PHONE NOTIFICATIONS ARMED // PERMISSION GRANTED', 'green');
+                sendNativeNotification('CYBER_PULSE // UPLINK ESTABLISHED', 'Your phone is paired to real-time habit directives.');
+            } else {
+                createToast('PERMISSION DENIED OR RESTRICTED', 'magenta');
+            }
+        }
+
+        function updateNotifyStatusUI() {
+            const badge = document.getElementById('push-perm-badge');
+            const linkStatus = document.getElementById('phone-link-status');
+            
+            if ('Notification' in window && Notification.permission === 'granted') {
+                badge.innerText = 'STATUS: ACTIVE';
+                badge.className = 'px-2 py-0.5 text-[10px] border border-cp-green text-cp-green uppercase';
+                linkStatus.innerText = 'ONLINE';
+                linkStatus.className = 'text-cp-green font-bold';
+            } else {
+                badge.innerText = 'STATUS: PENDING AUTH';
+                badge.className = 'px-2 py-0.5 text-[10px] border border-cp-yellow text-cp-yellow uppercase';
+                linkStatus.innerText = 'STANDBY';
+                linkStatus.className = 'text-cp-yellow font-bold';
+            }
+        }
+
+        function openNotifyModal() {
+            playSynthSound('click');
+            document.getElementById('tg-bot-token').value = notifyConfig.tgBotToken || '';
+            document.getElementById('tg-chat-id').value = notifyConfig.tgChatId || '';
+            document.getElementById('webhook-url').value = notifyConfig.webhookUrl || '';
+            document.getElementById('notify-modal').classList.remove('hidden');
+        }
+
+        function closeNotifyModal() {
+            playSynthSound('click');
+            document.getElementById('notify-modal').classList.add('hidden');
+        }
+
+        // Send alert through Web Push, Telegram, and Webhook
+        async function broadcastPhoneNotification(title, message, habitObj = null) {
+            playSynthSound('alarm');
+
+            // 1. Native Push Notification (Phone lock screen / desktop banner)
+            sendNativeNotification(title, message);
+
+            // 2. Telegram Bot Direct Push
+            if (notifyConfig.tgBotToken && notifyConfig.tgChatId) {
+                try {
+                    const text = `🚨 *${title}*\n${message}\n_CYBER_PULSE Telemetry_`;
+                    fetch(`https://api.telegram.org/bot${notifyConfig.tgBotToken}/sendMessage`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            chat_id: notifyConfig.tgChatId,
+                            text: text,
+                            parse_mode: 'Markdown'
+                        })
+                    }).catch(e => console.warn('Telegram send failed', e));
+                } catch(e) {}
+            }
+
+            // 3. Webhook Dispatch (Pushover / Discord / IFTTT)
+            if (notifyConfig.webhookUrl) {
+                try {
+                    fetch(notifyConfig.webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            content: `⚡ **${title}**: ${message}`,
+                            habit: habitObj?.name || 'Protocol Alert',
+                            timestamp: new Date().toISOString()
+                        })
+                    }).catch(e => console.warn('Webhook dispatch failed', e));
+                } catch(e) {}
+            }
+
+            // 4. In-App Toast
+            createToast(`📲 PHONE PING: ${title}`, 'yellow');
+        }
+
+        function sendNativeNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                try {
+                    const options = {
+                        body: body,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/3655/3655581.png',
+                        badge: 'https://cdn-icons-png.flaticon.com/512/3655/3655581.png',
+                        vibrate: [200, 100, 200, 100, 400],
+                        tag: 'cyber-pulse-alert'
+                    };
+                    new Notification(title, options);
+                } catch(e) {
+                    console.warn('Native notification error:', e);
+                }
+            }
+        }
+
+        // Test ping phone
+        async function testPhoneNotification() {
+            playSynthSound('alarm');
+            await broadcastPhoneNotification('CYBER_PULSE // PHONE LINK TEST', 'Ping received! Habit reminders and hard deadlines will alert this device.');
+        }
+
+        // Mobile Quick-Share / App Dispatch (Allows sending habit details directly to WhatsApp, Notes or Calendar)
+        function shareToPhoneApp(habitId) {
+            const habit = state.habits.find(h => h.id === habitId);
+            if (!habit) return;
+
+            const text = `CYBER_PULSE PROTOCOL // ${habit.name}\nDomain: ${habit.category} | Reward: +${habit.xp} XP\nReminder: ${habit.reminderTime || 'None'} | Deadline: ${habit.deadlineTime || 'None'}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: `CYBER_PULSE: ${habit.name}`,
+                    text: text,
+                    url: window.location.href
+                }).then(() => {
+                    createToast('DISPATCHED TO MOBILE APP', 'green');
+                }).catch(() => {});
+            } else {
+                // Fallback: Copy to clipboard
+                const dummy = document.createElement("textarea");
+                document.body.appendChild(dummy);
+                dummy.value = text;
+                dummy.select();
+                document.execCommand("copy");
+                document.body.removeChild(dummy);
+                createToast('DETAILS COPIED TO CLIPBOARD FOR PHONE APP', 'cyan');
+            }
+        }
+
+        /* ==========================================================================
+           CHRONO DAEMON (Background Live Monitor for Deadlines & Reminders)
+           ========================================================================== */
+        let chronoInterval = null;
+
+        function initChronoDaemon() {
+            if (chronoInterval) clearInterval(chronoInterval);
+            
+            // Check every 30 seconds
+            chronoInterval = setInterval(checkRemindersAndDeadlines, 30000);
+            checkRemindersAndDeadlines(); // initial check
+        }
+
+        function checkRemindersAndDeadlines() {
+            const now = new Date();
+            const todayIso = getFormattedDate(now);
+            const currentDayNum = now.getDay();
+            const currentHour = String(now.getHours()).padStart(2, '0');
+            const currentMin = String(now.getMinutes()).padStart(2, '0');
+            const currentTimeStr = `${currentHour}:${currentMin}`;
+
+            const urgentItems = [];
+
+            state.habits.forEach(habit => {
+                // Is habit scheduled today?
+                const isScheduledToday = habit.days.includes(currentDayNum);
+                const isCompletedToday = habit.completedDates.includes(todayIso);
+
+                if (!isScheduledToday || isCompletedToday) return;
+
+                // 1. Check Reminder Trigger
+                if (habit.reminderTime) {
+                    const reminderKey = `${habit.id}_${todayIso}_${habit.reminderTime}`;
+                    if (habit.reminderTime === currentTimeStr && !notifyConfig.dispatchedReminders[reminderKey]) {
+                        notifyConfig.dispatchedReminders[reminderKey] = true;
+                        localStorage.setItem(NOTIFY_CONFIG_KEY, JSON.stringify(notifyConfig));
+                        broadcastPhoneNotification(
+                            `REMINDER: ${habit.name}`,
+                            `Operative, initiate ${habit.category} protocol now. +${habit.xp} XP available.`,
+                            habit
+                        );
+                    }
+                }
+
+                // 2. Check Imminent Deadline or Overdue
+                if (habit.deadlineTime) {
+                    const [dh, dm] = habit.deadlineTime.split(':').map(Number);
+                    const deadlineDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), dh, dm, 0);
+                    const diffMinutes = Math.round((deadlineDate - now) / 60000);
+
+                    if (diffMinutes > 0 && diffMinutes <= 60) {
+                        urgentItems.push(`${habit.name} (${diffMinutes}m remaining)`);
+                        // Alert at 30 minutes left
+                        const deadlineKey = `${habit.id}_${todayIso}_warn30`;
+                        if (diffMinutes <= 30 && !notifyConfig.dispatchedReminders[deadlineKey]) {
+                            notifyConfig.dispatchedReminders[deadlineKey] = true;
+                            localStorage.setItem(NOTIFY_CONFIG_KEY, JSON.stringify(notifyConfig));
+                            broadcastPhoneNotification(
+                                `CRITICAL DEADLINE // 30M REMAINING`,
+                                `${habit.name} deadline expires in ${diffMinutes} minutes!`,
+                                habit
+                            );
+                        }
+                    } else if (diffMinutes <= 0) {
+                        urgentItems.push(`${habit.name} (OVERDUE!)`);
+                    }
+                }
+            });
+
+            // Update Header Ticker
+            const ticker = document.getElementById('deadline-ticker');
+            const tickerText = document.getElementById('deadline-ticker-text');
+            if (urgentItems.length > 0) {
+                ticker.classList.remove('hidden');
+                tickerText.innerText = urgentItems.join(' • ');
+            } else {
+                ticker.classList.add('hidden');
+            }
+
+            if (currentTab === 'deadlines') {
+                renderDeadlinesView();
+            }
+        }
+
+        /* ==========================================================================
+           GAMIFICATION MATH & MULTIPLIER
+           ========================================================================== */
+        function getRequiredXp(lvl) {
+            return lvl * 150 + 50;
+        }
+
+        function getMultiplier() {
+            if (state.streak >= 7) return 1.5;
+            if (state.streak >= 5) return 1.3;
+            if (state.streak >= 3) return 1.2;
+            return 1.0;
+        }
+
+        function getCurrentRank() {
+            let activeRank = RANKS[0];
+            for (const r of RANKS) {
+                if (state.level >= r.level) activeRank = r;
+            }
+            return activeRank;
+        }
+
+        function evaluateStreak() {
+            const today = getFormattedDate(new Date());
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            const yesterday = getFormattedDate(yesterdayDate);
+
+            if (state.lastCompletedDate && state.lastCompletedDate !== today && state.lastCompletedDate !== yesterday) {
+                state.streak = 0;
+            }
+        }
+
+        function awardXP(baseAmount, eventElement, wasOnTime = false) {
+            const mult = getMultiplier();
+            const earned = Math.round(baseAmount * mult);
+
+            state.currentXp += earned;
+            state.lifetimeXp += earned;
+            state.totalExecutions += 1;
+            if (wasOnTime) {
+                state.onTimeCompletions = (state.onTimeCompletions || 0) + 1;
+            }
+
+            const today = getFormattedDate(new Date());
+            if (state.lastCompletedDate !== today) {
+                if (state.lastCompletedDate) {
+                    const yesterdayDate = new Date();
+                    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                    if (state.lastCompletedDate === getFormattedDate(yesterdayDate)) {
+                        state.streak += 1;
+                    } else {
+                        state.streak = 1;
+                    }
+                } else {
+                    state.streak = 1;
+                }
+                state.lastCompletedDate = today;
+                if (state.streak > state.longestStreak) {
+                    state.longestStreak = state.streak;
+                }
+            }
+
+            if (!state.dailyHistory[today]) {
+                state.dailyHistory[today] = { xp: 0, completed: [] };
+            }
+            state.dailyHistory[today].xp += earned;
+
+            if (eventElement) {
+                spawnFloatingXP(earned, mult, eventElement);
+            }
+
+            let required = getRequiredXp(state.level);
+            let leveledUp = false;
+
+            while (state.currentXp >= required) {
+                state.currentXp -= required;
+                state.level += 1;
+                leveledUp = true;
+                required = getRequiredXp(state.level);
+            }
+
+            saveState();
+            updateHUD();
+
+            if (leveledUp) {
+                triggerLevelUpCeremony();
+            } else {
+                playSynthSound('check');
+            }
+
+            checkAchievements(true);
+        }
+
+        function spawnFloatingXP(amount, mult, targetEl) {
+            const rect = targetEl.getBoundingClientRect();
+            const popup = document.createElement('div');
+            popup.className = 'floating-xp font-display font-black text-sm text-cp-yellow drop-shadow-[0_0_8px_rgba(252,238,10,0.8)]';
+            popup.innerHTML = `+${amount} XP ${mult > 1 ? `<span class="text-[10px] text-cp-green">(${mult}x)</span>` : ''}`;
+            popup.style.left = `${rect.left + rect.width / 2 - 20}px`;
+            popup.style.top = `${rect.top - 10}px`;
+
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 1200);
+        }
+
+        function triggerLevelUpCeremony() {
+            playSynthSound('levelup');
+            confetti({
+                particleCount: 75,
+                spread: 80,
+                origin: { y: 0.6 },
+                colors: ['#00f0ff', '#fcee0a', '#ff0055', '#05ffa1']
+            });
+
+            createToast(`UPGRADE COMPLETE: Operative Level ${state.level} Acquired!`, 'yellow');
+        }
+
+        function checkAchievements(notify) {
+            ACHIEVEMENTS.forEach(ach => {
+                if (!state.unlockedAchievements.includes(ach.id)) {
+                    if (ach.test(state)) {
+                        state.unlockedAchievements.push(ach.id);
+                        saveState();
+                        if (notify) {
+                            createToast(`AUGMENT UNLOCKED: [${ach.title}]`, 'magenta');
+                        }
+                    }
+                }
+            });
+            document.getElementById('unlocked-achievements-count').innerText = state.unlockedAchievements.length;
+        }
+
+        /* ==========================================================================
+           UI HUD & NAVIGATION UPDATES
+           ========================================================================== */
+        function updateHUD() {
+            const rank = getCurrentRank();
+            document.getElementById('player-level').innerText = state.level;
+            document.getElementById('player-rank').innerText = rank.title;
+            document.getElementById('player-avatar').innerText = rank.avatar;
+
+            const needed = getRequiredXp(state.level);
+            document.getElementById('player-current-xp').innerText = state.currentXp;
+            document.getElementById('player-needed-xp').innerText = needed;
+
+            const pct = Math.min(100, Math.max(0, (state.currentXp / needed) * 100));
+            document.getElementById('player-xp-bar').style.width = `${pct}%`;
+
+            document.getElementById('streak-days').innerText = state.streak;
+            document.getElementById('streak-mult').innerText = `${getMultiplier().toFixed(1)}x`;
+
+            document.getElementById('stat-lifetime-xp').innerText = state.lifetimeXp.toLocaleString();
+            document.getElementById('stat-executions').innerText = state.totalExecutions.toLocaleString();
+            document.getElementById('stat-max-streak').innerText = `${state.longestStreak} DAYS`;
+            
+            const totalScheduledHabits = state.habits.length;
+            const completionRate = totalScheduledHabits > 0 
+                ? Math.min(100, Math.round((state.totalExecutions / (totalScheduledHabits * 14 || 1)) * 100))
+                : 0;
+            document.getElementById('stat-completion-rate').innerText = `${completionRate}%`;
+
+            renderCalendarStrip();
+            if (currentTab === 'daily') renderDailyView();
+            if (currentTab === 'deadlines') renderDeadlinesView();
+            if (currentTab === 'all') renderAllHabitsView();
+        }
+
+        function switchTab(tabId) {
+            playSynthSound('click');
+            currentTab = tabId;
+
+            ['daily', 'deadlines', 'all', 'analytics'].forEach(t => {
+                const el = document.getElementById(`view-${t}`);
+                if (el) el.classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) btn.className = "px-5 py-2 font-display text-xs font-bold uppercase transition-all text-gray-400 hover:text-white clip-corner-sm";
+            });
+
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            
+            if (tabId === 'daily') {
+                activeBtn.className = "px-5 py-2 font-display text-xs font-bold uppercase transition-all bg-cp-cyan text-black clip-corner-sm shadow-[0_0_10px_rgba(0,240,255,0.3)]";
+                document.getElementById('filter-controls').classList.remove('opacity-0', 'pointer-events-none');
+                renderDailyView();
+            } else if (tabId === 'deadlines') {
+                activeBtn.className = "px-5 py-2 font-display text-xs font-bold uppercase transition-all bg-cp-yellow text-black clip-corner-sm shadow-[0_0_10px_rgba(252,238,10,0.3)]";
+                document.getElementById('filter-controls').classList.remove('opacity-0', 'pointer-events-none');
+                renderDeadlinesView();
+            } else if (tabId === 'all') {
+                activeBtn.className = "px-5 py-2 font-display text-xs font-bold uppercase transition-all bg-cp-magenta text-white clip-corner-sm shadow-[0_0_10px_rgba(255,0,85,0.3)]";
+                document.getElementById('filter-controls').classList.remove('opacity-0', 'pointer-events-none');
+                renderAllHabitsView();
+            } else if (tabId === 'analytics') {
+                activeBtn.className = "px-5 py-2 font-display text-xs font-bold uppercase transition-all bg-cp-green text-black clip-corner-sm shadow-[0_0_10px_rgba(5,255,161,0.3)]";
+                document.getElementById('filter-controls').classList.add('opacity-0', 'pointer-events-none');
+                renderAnalyticsCharts();
+            }
+        }
+
+        /* ==========================================================================
+           CALENDAR & DAILY PROTOCOL ENGINE (WITH REMINDER & DEADLINE BADGES)
+           ========================================================================== */
+        function renderCalendarStrip() {
+            const strip = document.getElementById('week-strip');
+            strip.innerHTML = '';
+
+            const today = new Date();
+            const currentDayOfWeek = today.getDay();
+            const daysOfWeek = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            
+            const mondayOffset = (currentDayOfWeek === 0 ? -6 : 1) - currentDayOfWeek;
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + mondayOffset);
+
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + i);
+                const dayIso = getFormattedDate(dayDate);
+                const dayNum = dayDate.getDay();
+                const isSelected = dayIso === selectedDateStr;
+                const isToday = dayIso === getFormattedDate(new Date());
+
+                const habitsScheduled = state.habits.filter(h => h.days.includes(dayNum));
+                const completedCount = habitsScheduled.filter(h => h.completedDates.includes(dayIso)).length;
+                const allDone = habitsScheduled.length > 0 && completedCount === habitsScheduled.length;
+
+                const dayBtn = document.createElement('button');
+                dayBtn.onclick = () => selectDate(dayIso);
+                dayBtn.className = `p-2 text-center border font-mono transition-all clip-corner-sm flex flex-col items-center justify-between ${
+                    isSelected 
+                        ? 'border-cp-cyan bg-cp-cyan/20 text-cp-cyan shadow-[0_0_12px_rgba(0,240,255,0.4)]' 
+                        : isToday 
+                            ? 'border-cp-yellow text-cp-yellow bg-cp-yellow/5'
+                            : 'border-cp-border text-gray-400 hover:border-gray-500 bg-black/40'
+                }`;
+
+                dayBtn.innerHTML = `
+                    <span class="text-[10px] font-bold ${isToday ? 'text-cp-yellow' : ''}">${daysOfWeek[dayNum]}</span>
+                    <span class="text-sm font-display font-black my-0.5">${dayDate.getDate()}</span>
+                    <div class="w-full flex items-center justify-center gap-0.5">
+                        <span class="w-1.5 h-1.5 rounded-full ${allDone ? 'bg-cp-green' : completedCount > 0 ? 'bg-cp-cyan' : 'bg-gray-700'}"></span>
+                    </div>
+                `;
+
+                strip.appendChild(dayBtn);
+            }
+        }
+
+        function selectDate(dateIso) {
+            playSynthSound('click');
+            selectedDateStr = dateIso;
+            renderCalendarStrip();
+            renderDailyView();
+        }
+
+        function selectToday() {
+            selectDate(getFormattedDate(new Date()));
+        }
+
+        function renderDailyView() {
+            const list = document.getElementById('daily-habits-list');
+            const empty = document.getElementById('daily-empty-state');
+            const dayLabel = document.getElementById('selected-day-label');
+            const countBadge = document.getElementById('daily-completion-badge');
+
+            const [y, m, d] = selectedDateStr.split('-').map(Number);
+            const targetDate = new Date(y, m - 1, d);
+            const isToday = selectedDateStr === getFormattedDate(new Date());
+            dayLabel.innerText = isToday ? `TODAY (${selectedDateStr})` : `${selectedDateStr}`;
+
+            const dayNum = targetDate.getDay();
+
+            let filtered = state.habits.filter(h => h.days.includes(dayNum));
+
+            if (filterCategory !== 'ALL') {
+                filtered = filtered.filter(h => h.category === filterCategory);
+            }
+            if (searchQuery.trim() !== '') {
+                filtered = filtered.filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            }
+            if (filterStatus === 'PENDING') {
+                filtered = filtered.filter(h => !h.completedDates.includes(selectedDateStr));
+            } else if (filterStatus === 'COMPLETED') {
+                filtered = filtered.filter(h => h.completedDates.includes(selectedDateStr));
+            }
+
+            const totalForDay = state.habits.filter(h => h.days.includes(dayNum)).length;
+            const completedForDay = state.habits.filter(h => h.days.includes(dayNum) && h.completedDates.includes(selectedDateStr)).length;
+            countBadge.innerText = `${completedForDay} / ${totalForDay} COMPLETED`;
+
+            if (filtered.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            list.innerHTML = '';
+
+            const now = new Date();
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+            filtered.forEach(habit => {
+                const isCompleted = habit.completedDates.includes(selectedDateStr);
+                
+                let tagColor = 'border-cp-cyan text-cp-cyan';
+                if (habit.category === 'TECH') tagColor = 'border-cp-cyan text-cp-cyan';
+                if (habit.category === 'STRENGTH') tagColor = 'border-cp-magenta text-cp-magenta';
+                if (habit.category === 'AGILITY') tagColor = 'border-cp-green text-cp-green';
+                if (habit.category === 'DISCIPLINE') tagColor = 'border-cp-yellow text-cp-yellow';
+
+                // Check deadline status for today
+                let deadlineBadge = '';
+                if (habit.deadlineTime && isToday && !isCompleted) {
+                    const [dh, dm] = habit.deadlineTime.split(':').map(Number);
+                    const deadlineMinutes = dh * 60 + dm;
+                    const diff = deadlineMinutes - nowMinutes;
+
+                    if (diff < 0) {
+                        deadlineBadge = `<span class="text-[9px] px-1.5 py-0.5 bg-cp-magenta/20 border border-cp-magenta text-cp-magenta font-mono font-bold animate-pulse">OVERDUE (${habit.deadlineTime})</span>`;
+                    } else if (diff <= 60) {
+                        deadlineBadge = `<span class="text-[9px] px-1.5 py-0.5 bg-cp-yellow/20 border border-cp-yellow text-cp-yellow font-mono font-bold">DUE IN ${diff}m</span>`;
+                    } else {
+                        deadlineBadge = `<span class="text-[9px] px-1.5 py-0.5 border border-cp-border text-gray-400 font-mono">DEADLINE: ${habit.deadlineTime}</span>`;
+                    }
+                } else if (habit.deadlineTime) {
+                    deadlineBadge = `<span class="text-[9px] px-1.5 py-0.5 border border-cp-border text-gray-400 font-mono">DEADLINE: ${habit.deadlineTime}</span>`;
+                }
+
+                // Reminder badge
+                let reminderBadge = habit.reminderTime 
+                    ? `<span class="text-[9px] px-1.5 py-0.5 border border-cp-yellow/40 text-cp-yellow font-mono flex items-center gap-1"><span>🔔</span>${habit.reminderTime}</span>` 
+                    : '';
+
+                const card = document.createElement('div');
+                card.className = `p-4 bg-cp-card border ${isCompleted ? 'border-cp-green/50 bg-cp-green/[0.03]' : 'border-cp-border hover:border-cp-cyan/50'} clip-corner transition-all duration-200 flex flex-col justify-between gap-4 relative overflow-hidden group`;
+
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <span class="text-2xl p-2 bg-black/60 border border-cp-border rounded-none clip-corner-sm flex items-center justify-center shrink-0">
+                                ${habit.glyph || '⚡'}
+                            </span>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                                    <span class="text-[9px] uppercase px-2 py-0.5 border ${tagColor} font-mono tracking-wider font-bold">
+                                        ${habit.category}
+                                    </span>
+                                    <span class="text-[10px] text-cp-yellow font-mono font-bold">
+                                        +${habit.xp} XP
+                                    </span>
+                                    ${deadlineBadge}
+                                    ${reminderBadge}
+                                </div>
+                                <h3 class="font-display font-bold text-sm tracking-wide ${isCompleted ? 'line-through text-gray-500' : 'text-white'}">
+                                    ${escapeHtml(habit.name)}
+                                </h3>
+                            </div>
+                        </div>
+
+                        <!-- Action Toggle Button -->
+                        <button onclick="toggleHabitExecution('${habit.id}', this)" class="shrink-0 px-4 py-2 font-display text-xs font-bold uppercase clip-corner transition-all flex items-center gap-1.5 ${
+                            isCompleted 
+                                ? 'bg-cp-green/20 text-cp-green border border-cp-green hover:bg-cp-magenta/20 hover:text-cp-magenta hover:border-cp-magenta' 
+                                : 'bg-cp-cyan text-black hover:bg-cp-yellow hover:shadow-[0_0_15px_rgba(252,238,10,0.5)]'
+                        }">
+                            <span>${isCompleted ? '✓ EXECUTED' : 'EXECUTE'}</span>
+                        </button>
+                    </div>
+
+                    <!-- Card bottom details -->
+                    <div class="flex items-center justify-between text-[11px] font-mono text-gray-400 border-t border-cp-border/60 pt-2">
+                        <span>LIFETIME: ${habit.completedDates.length} COMPLETED</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="shareToPhoneApp('${habit.id}')" title="Dispatch to phone app" class="text-cp-yellow hover:underline flex items-center gap-1">
+                                <span>📲</span> PHONE
+                            </button>
+                            <span class="text-cp-border">&bull;</span>
+                            <button onclick="editHabit('${habit.id}')" class="text-gray-400 hover:text-cp-cyan uppercase tracking-wider">EDIT</button>
+                            <span class="text-cp-border">&bull;</span>
+                            <button onclick="deleteHabit('${habit.id}')" class="text-gray-400 hover:text-cp-magenta uppercase tracking-wider">DELETE</button>
+                        </div>
+                    </div>
+                `;
+
+                list.appendChild(card);
+            });
+        }
+
+        function toggleHabitExecution(habitId, btnElement) {
+            const habit = state.habits.find(h => h.id === habitId);
+            if (!habit) return;
+
+            const completedIndex = habit.completedDates.indexOf(selectedDateStr);
+
+            if (completedIndex === -1) {
+                habit.completedDates.push(selectedDateStr);
+                
+                // Determine if on-time completion
+                let onTime = true;
+                if (habit.deadlineTime && selectedDateStr === getFormattedDate(new Date())) {
+                    const now = new Date();
+                    const [dh, dm] = habit.deadlineTime.split(':').map(Number);
+                    const deadline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), dh, dm);
+                    if (now > deadline) onTime = false;
+                }
+
+                awardXP(habit.xp, btnElement, onTime);
+            } else {
+                playSynthSound('delete');
+                habit.completedDates.splice(completedIndex, 1);
+                state.currentXp = Math.max(0, state.currentXp - habit.xp);
+                state.lifetimeXp = Math.max(0, state.lifetimeXp - habit.xp);
+                state.totalExecutions = Math.max(0, state.totalExecutions - 1);
+                saveState();
+                updateHUD();
+                createToast(`REVERTED PROTOCOL EXECUTION`, 'magenta');
+            }
+
+            renderDailyView();
+            renderCalendarStrip();
+            if (currentTab === 'deadlines') renderDeadlinesView();
+        }
+
+        /* ==========================================================================
+           DEADLINES & CHRONO-RADAR VIEW
+           ========================================================================== */
+        function renderDeadlinesView() {
+            const container = document.getElementById('deadlines-container');
+            container.innerHTML = '';
+
+            const todayIso = getFormattedDate(new Date());
+            const now = new Date();
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+            const currentDayNum = now.getDay();
+
+            // Find all habits that have a deadline or reminder
+            const alertHabits = state.habits.filter(h => h.deadlineTime || h.reminderTime || h.deadlineDate);
+
+            if (alertHabits.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 bg-cp-card border border-cp-border clip-corner text-gray-400 font-mono">
+                        NO ACTIVE DEADLINES CONFIGURED. CLICK [+ INITIALIZE NEW PROTOCOL] OR EDIT EXISTING TO SET TARGET TIMES.
+                    </div>
+                `;
+                return;
+            }
+
+            alertHabits.forEach(habit => {
+                const isScheduledToday = habit.days.includes(currentDayNum);
+                const isCompletedToday = habit.completedDates.includes(todayIso);
+
+                let statusText = 'SCHEDULED';
+                let statusColor = 'border-cp-cyan text-cp-cyan';
+                let countdownDisplay = '--:--';
+
+                if (isCompletedToday) {
+                    statusText = 'RESOLVED / DONE';
+                    statusColor = 'border-cp-green text-cp-green';
+                    countdownDisplay = 'COMPLETED';
+                } else if (!isScheduledToday) {
+                    statusText = 'OFF SCHEDULE';
+                    statusColor = 'border-gray-600 text-gray-500';
+                    countdownDisplay = 'NOT TODAY';
+                } else if (habit.deadlineTime) {
+                    const [dh, dm] = habit.deadlineTime.split(':').map(Number);
+                    const deadlineMinutes = dh * 60 + dm;
+                    const diff = deadlineMinutes - nowMinutes;
+
+                    if (diff < 0) {
+                        statusText = 'TIMEOUT / OVERDUE';
+                        statusColor = 'border-cp-magenta text-cp-magenta bg-cp-magenta/10';
+                        countdownDisplay = `${Math.abs(diff)}m OVERDUE`;
+                    } else {
+                        const hours = Math.floor(diff / 60);
+                        const mins = diff % 60;
+                        statusText = 'ACTIVE COUNTDOWN';
+                        statusColor = diff <= 60 ? 'border-cp-yellow text-cp-yellow bg-cp-yellow/10' : 'border-cp-cyan text-cp-cyan';
+                        countdownDisplay = `${hours}h ${mins}m LEFT`;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = "bg-cp-card border border-cp-border p-4 clip-corner flex flex-col justify-between gap-3";
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <span class="text-xs uppercase px-2 py-0.5 border ${statusColor} font-mono font-bold tracking-wider">
+                                ${statusText}
+                            </span>
+                            <span class="text-lg">${habit.glyph}</span>
+                        </div>
+                        <h3 class="font-display font-bold text-white text-base">${escapeHtml(habit.name)}</h3>
+                        <span class="text-[11px] text-gray-400 font-mono block mt-1">DOM: ${habit.category} &bull; +${habit.xp} XP</span>
+                    </div>
+
+                    <div class="bg-black/60 border border-cp-border/70 p-3 space-y-1.5 font-mono text-xs">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">DAILY REMINDER:</span>
+                            <span class="text-cp-yellow font-bold">${habit.reminderTime ? `🔔 ${habit.reminderTime}` : 'UNSET'}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">HARD DEADLINE:</span>
+                            <span class="text-cp-magenta font-bold">${habit.deadlineTime ? `⏳ ${habit.deadlineTime}` : 'UNSET'}</span>
+                        </div>
+                        ${habit.deadlineDate ? `
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400">TARGET DATE:</span>
+                            <span class="text-cp-cyan font-bold">${habit.deadlineDate}</span>
+                        </div>` : ''}
+                        <div class="border-t border-cp-border/50 pt-1.5 flex justify-between items-center text-sm font-display font-black">
+                            <span class="text-gray-300">TIME REMAINING:</span>
+                            <span class="${statusColor.includes('magenta') ? 'text-cp-magenta' : 'text-cp-cyan'}">${countdownDisplay}</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1">
+                        <button onclick="shareToPhoneApp('${habit.id}')" class="flex-1 py-1.5 bg-black border border-cp-yellow text-cp-yellow hover:bg-cp-yellow hover:text-black font-mono text-xs uppercase transition-colors clip-corner-sm flex items-center justify-center gap-1">
+                            <span>📲</span> SEND TO PHONE
+                        </button>
+                        <button onclick="editHabit('${habit.id}')" class="px-3 py-1.5 bg-black border border-cp-border hover:border-cp-cyan text-gray-300 hover:text-cp-cyan font-mono text-xs uppercase clip-corner-sm">
+                            ADJUST
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        /* ==========================================================================
+           ALL HABITS DIRECTORY VIEW
+           ========================================================================== */
+        function renderAllHabitsView() {
+            const container = document.getElementById('all-habits-table');
+            const empty = document.getElementById('all-empty-state');
+            container.innerHTML = '';
+
+            let list = [...state.habits];
+
+            if (searchQuery.trim() !== '') {
+                list = list.filter(h => h.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            }
+            if (filterCategory !== 'ALL') {
+                list = list.filter(h => h.category === filterCategory);
+            }
+
+            if (list.length === 0) {
+                empty.classList.remove('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            const daysMap = {1: 'MON', 2: 'TUE', 3: 'WED', 4: 'THU', 5: 'FRI', 6: 'SAT', 0: 'SUN'};
+
+            list.forEach(habit => {
+                const daysLabels = habit.days.map(d => daysMap[d]).join(' / ');
+                const item = document.createElement('div');
+                item.className = "p-4 bg-cp-card border border-cp-border clip-corner flex flex-col sm:flex-row sm:items-center justify-between gap-4";
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl p-2 bg-black border border-cp-border">${habit.glyph || '⚡'}</span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-display font-bold text-white text-sm">${escapeHtml(habit.name)}</h4>
+                                <span class="text-[10px] text-cp-yellow font-mono font-bold">+${habit.xp} XP</span>
+                            </div>
+                            <div class="text-xs text-gray-400 font-mono mt-1">
+                                <span class="text-cp-cyan font-bold">${habit.category}</span> &bull; DAYS: [ ${daysLabels} ]
+                            </div>
+                            <div class="flex items-center gap-3 text-[10px] font-mono text-gray-400 mt-1">
+                                <span>REMINDER: <strong class="text-cp-yellow">${habit.reminderTime || 'NONE'}</strong></span>
+                                <span>&bull;</span>
+                                <span>DEADLINE: <strong class="text-cp-magenta">${habit.deadlineTime || 'NONE'}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 self-end sm:self-center">
+                        <button onclick="shareToPhoneApp('${habit.id}')" title="Dispatch to phone" class="px-2.5 py-1 bg-black border border-cp-yellow text-cp-yellow text-xs font-mono uppercase hover:bg-cp-yellow hover:text-black transition-colors">
+                            📲 PHONE
+                        </button>
+                        <button onclick="editHabit('${habit.id}')" class="px-3 py-1 bg-black border border-cp-cyan text-cp-cyan text-xs font-mono uppercase hover:bg-cp-cyan hover:text-black transition-colors">
+                            CONFIG
+                        </button>
+                        <button onclick="deleteHabit('${habit.id}')" class="px-3 py-1 bg-black border border-cp-magenta text-cp-magenta text-xs font-mono uppercase hover:bg-cp-magenta hover:text-white transition-colors">
+                            TERMINATE
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        /* ==========================================================================
+           HABIT MODAL (CREATE / EDIT)
+           ========================================================================== */
+        function openModal() {
+            playSynthSound('click');
+            document.getElementById('modal-title').innerText = "INITIALIZE NEW DIRECTIVE";
+            document.getElementById('modal-habit-id').value = "";
+            document.getElementById('modal-habit-name').value = "";
+            document.getElementById('modal-habit-category').value = "STRENGTH";
+            document.getElementById('modal-habit-glyph').value = "⚡";
+            document.getElementById('modal-habit-reminder').value = "08:00";
+            document.getElementById('modal-habit-deadline').value = "20:00";
+            document.getElementById('modal-habit-deadline-date').value = "";
+            
+            document.querySelector('input[name="xp_tier"][value="50"]').checked = true;
+            document.querySelectorAll('.day-opt').forEach(cb => cb.checked = true);
+
+            document.getElementById('habit-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            playSynthSound('click');
+            document.getElementById('habit-modal').classList.add('hidden');
+        }
+
+        function setGlyph(g) {
+            document.getElementById('modal-habit-glyph').value = g;
+        }
+
+        function toggleAllDays() {
+            const boxes = document.querySelectorAll('.day-opt');
+            const allChecked = Array.from(boxes).every(b => b.checked);
+            boxes.forEach(b => b.checked = !allChecked);
+        }
+
+        function editHabit(id) {
+            const habit = state.habits.find(h => h.id === id);
+            if (!habit) return;
+
+            document.getElementById('modal-title').innerText = "RECONFIGURE DIRECTIVE";
+            document.getElementById('modal-habit-id').value = habit.id;
+            document.getElementById('modal-habit-name').value = habit.name;
+            document.getElementById('modal-habit-category').value = habit.category;
+            document.getElementById('modal-habit-glyph').value = habit.glyph || '⚡';
+            document.getElementById('modal-habit-reminder').value = habit.reminderTime || '';
+            document.getElementById('modal-habit-deadline').value = habit.deadlineTime || '';
+            document.getElementById('modal-habit-deadline-date').value = habit.deadlineDate || '';
+
+            const tierRadio = document.querySelector(`input[name="xp_tier"][value="${habit.xp}"]`);
+            if (tierRadio) tierRadio.checked = true;
+
+            document.querySelectorAll('.day-opt').forEach(cb => {
+                cb.checked = habit.days.includes(parseInt(cb.value));
+            });
+
+            document.getElementById('habit-modal').classList.remove('hidden');
+        }
+
+        function handleHabitSubmit(e) {
+            e.preventDefault();
+            const habitId = document.getElementById('modal-habit-id').value;
+            const name = document.getElementById('modal-habit-name').value.trim();
+            const category = document.getElementById('modal-habit-category').value;
+            const glyph = document.getElementById('modal-habit-glyph').value.trim() || '⚡';
+            const xp = parseInt(document.querySelector('input[name="xp_tier"]:checked').value);
+            const reminderTime = document.getElementById('modal-habit-reminder').value;
+            const deadlineTime = document.getElementById('modal-habit-deadline').value;
+            const deadlineDate = document.getElementById('modal-habit-deadline-date').value;
+
+            const selectedDays = Array.from(document.querySelectorAll('.day-opt:checked')).map(cb => parseInt(cb.value));
+
+            if (selectedDays.length === 0) {
+                createToast('SCHEDULE ERROR: SELECT AT LEAST 1 DAY', 'magenta');
+                return;
+            }
+
+            if (habitId) {
+                const existing = state.habits.find(h => h.id === habitId);
+                if (existing) {
+                    existing.name = name;
+                    existing.category = category;
+                    existing.glyph = glyph;
+                    existing.xp = xp;
+                    existing.days = selectedDays;
+                    existing.reminderTime = reminderTime;
+                    existing.deadlineTime = deadlineTime;
+                    existing.deadlineDate = deadlineDate;
+                    createToast(`PROTOCOL RECONFIGURED: ${name}`, 'cyan');
+                }
+            } else {
+                const newHabit = {
+                    id: 'proto_' + Date.now() + Math.floor(Math.random() * 1000),
+                    name,
+                    category,
+                    glyph,
+                    xp,
+                    days: selectedDays,
+                    reminderTime,
+                    deadlineTime,
+                    deadlineDate,
+                    completedDates: []
+                };
+                state.habits.push(newHabit);
+                createToast(`NEW PROTOCOL INITIALIZED: ${name}`, 'green');
+            }
+
+            saveState();
+            closeModal();
+            updateHUD();
+            checkRemindersAndDeadlines();
+        }
+
+        function deleteHabit(id) {
+            playSynthSound('delete');
+            state.habits = state.habits.filter(h => h.id !== id);
+            saveState();
+            updateHUD();
+            createToast('PROTOCOL TERMINATED FROM DATABASE', 'magenta');
+        }
+
+        /* ==========================================================================
+           SEARCH & FILTERS
+           ========================================================================== */
+        function handleSearch(val) {
+            searchQuery = val;
+            if (currentTab === 'daily') renderDailyView();
+            if (currentTab === 'deadlines') renderDeadlinesView();
+            if (currentTab === 'all') renderAllHabitsView();
+        }
+
+        function handleCategoryFilter(cat) {
+            filterCategory = cat;
+            if (currentTab === 'daily') renderDailyView();
+            if (currentTab === 'deadlines') renderDeadlinesView();
+            if (currentTab === 'all') renderAllHabitsView();
+        }
+
+        function handleStatusFilter(status) {
+            filterStatus = status;
+            if (currentTab === 'daily') renderDailyView();
+        }
+
+        /* ==========================================================================
+           TELEMETRY & CHARTS (Chart.js Engine)
+           ========================================================================== */
+        let barChartInstance = null;
+        let radarChartInstance = null;
+        let lineChartInstance = null;
+
+        function renderAnalyticsCharts() {
+            renderBarChart();
+            renderRadarChart();
+            renderLineChart();
+        }
+
+        function renderBarChart() {
+            const ctx = document.getElementById('weeklyBarChart').getContext('2d');
+            const labels = [];
+            const dataPcts = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const iso = getFormattedDate(d);
+                const dayNum = d.getDay();
+                
+                labels.push(iso.slice(5).replace('-', '/'));
+                
+                const scheduled = state.habits.filter(h => h.days.includes(dayNum));
+                if (scheduled.length === 0) {
+                    dataPcts.push(100);
+                } else {
+                    const done = scheduled.filter(h => h.completedDates.includes(iso)).length;
+                    dataPcts.push(Math.round((done / scheduled.length) * 100));
+                }
+            }
+
+            if (barChartInstance) barChartInstance.destroy();
+
+            barChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Completion %',
+                        data: dataPcts,
+                        backgroundColor: 'rgba(0, 240, 255, 0.4)',
+                        borderColor: '#00f0ff',
+                        borderWidth: 1.5,
+                        hoverBackgroundColor: '#fcee0a',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#656b8a', font: { family: '"Share Tech Mono"' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#00f0ff', font: { family: '"Share Tech Mono"' } }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderRadarChart() {
+            const ctx = document.getElementById('categoryRadarChart').getContext('2d');
+            const categories = ['STRENGTH', 'TECH', 'AGILITY', 'DISCIPLINE'];
+            const scores = categories.map(cat => {
+                const habitsOfCat = state.habits.filter(h => h.category === cat);
+                return habitsOfCat.reduce((acc, h) => acc + h.completedDates.length, 0);
+            });
+
+            if (radarChartInstance) radarChartInstance.destroy();
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['COMBAT', 'INTEL', 'AGILITY', 'DISCIPLINE'],
+                    datasets: [{
+                        label: 'Specialization Vector',
+                        data: scores,
+                        backgroundColor: 'rgba(255, 0, 85, 0.25)',
+                        borderColor: '#ff0055',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#fcee0a',
+                        pointBorderColor: '#fff',
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                            pointLabels: {
+                                color: '#fcee0a',
+                                font: { family: '"Chakra Petch"', size: 10, weight: 'bold' }
+                            },
+                            ticks: { display: false }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderLineChart() {
+            const ctx = document.getElementById('xpLineChart').getContext('2d');
+            const labels = [];
+            const dataPoints = [];
+
+            for (let i = 13; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const iso = getFormattedDate(d);
+                labels.push(iso.slice(5).replace('-', '/'));
+                dataPoints.push(state.dailyHistory[iso] ? state.dailyHistory[iso].xp : 0);
+            }
+
+            if (lineChartInstance) lineChartInstance.destroy();
+
+            lineChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Daily XP Harvested',
+                        data: dataPoints,
+                        fill: true,
+                        backgroundColor: 'rgba(5, 255, 161, 0.08)',
+                        borderColor: '#05ffa1',
+                        borderWidth: 2,
+                        tension: 0.35,
+                        pointBackgroundColor: '#00f0ff',
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#656b8a', font: { family: '"Share Tech Mono"' } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#656b8a', font: { family: '"Share Tech Mono"' } }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#05ffa1',
+                                font: { family: '"Share Tech Mono"' }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ==========================================================================
+           ACHIEVEMENTS MODAL
+           ========================================================================== */
+        function openAchievementsModal() {
+            playSynthSound('click');
+            const list = document.getElementById('achievements-list');
+            list.innerHTML = '';
+
+            ACHIEVEMENTS.forEach(ach => {
+                const isUnlocked = state.unlockedAchievements.includes(ach.id);
+                const item = document.createElement('div');
+                item.className = `p-3 bg-black/60 border ${isUnlocked ? 'border-cp-green bg-cp-green/[0.05]' : 'border-cp-border opacity-50'} clip-corner-sm flex items-center gap-3`;
+                
+                item.innerHTML = `
+                    <div class="text-2xl p-2 bg-black border ${isUnlocked ? 'border-cp-green' : 'border-cp-border'}">
+                        ${ach.icon}
+                    </div>
+                    <div>
+                        <h4 class="font-display font-bold text-xs uppercase ${isUnlocked ? 'text-cp-green' : 'text-gray-400'}">
+                            ${ach.title} ${isUnlocked ? '✓' : '🔒'}
+                        </h4>
+                        <p class="text-[11px] font-mono text-gray-400 mt-0.5">${ach.desc}</p>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            document.getElementById('achievements-modal').classList.remove('hidden');
+        }
+
+        function closeAchievementsModal() {
+            playSynthSound('click');
+            document.getElementById('achievements-modal').classList.add('hidden');
+        }
+
+        function dismissBanner() {
+            playSynthSound('click');
+            document.getElementById('walkthrough-banner').style.display = 'none';
+        }
+
+        /* ==========================================================================
+           TOAST NOTIFICATIONS
+           ========================================================================== */
+        function createToast(msg, color = 'cyan') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let borderClass = 'border-cp-cyan text-cp-cyan';
+            if (color === 'yellow') borderClass = 'border-cp-yellow text-cp-yellow';
+            if (color === 'magenta') borderClass = 'border-cp-magenta text-cp-magenta';
+            if (color === 'green') borderClass = 'border-cp-green text-cp-green';
+
+            toast.className = `p-3.5 bg-cp-card/95 border-l-4 ${borderClass} border-r border-t border-b border-cp-border font-mono text-xs shadow-2xl clip-corner-sm backdrop-blur transition-all duration-300 transform translate-x-full`;
+            toast.innerHTML = `<span class="font-bold">></span> ${msg}`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.remove('translate-x-full'), 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-4');
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadInitialState();
+            updateHUD();
+        });
+    </script>
+</body>
+</html>
+```eof
+
+### Key Updates & How to Use the New Features:
+
+1. **Daily Reminders & Push Alarms**:
+   - When creating or editing any protocol, you can set a **Daily Reminder Time** (e.g., `07:30`).
+   - The app's Chrono Daemon runs every 30 seconds and checks for matching times. When triggered, it plays a distinct cyberpunk alarm synth and fires a browser/mobile notification.
+
+2. **Hard Deadlines & Timers**:
+   - Assign a **Hard Deadline Time** (e.g. `18:00`) or specific target date.
+   - The app actively computes remaining hours/minutes (`2h 15m LEFT`) and switches to `DUE IN 30m` or `OVERDUE` warnings.
+   - An urgent warning ticker flashes along the top HUD if any protocols are approaching their deadlines.
+
+3. **Multi-Channel Phone Uplink**:
+   - Click the **`[📲 PHONE UPLINK]`** button in the header.
+   - **Browser/Mobile Push:** Click **Grant Notification Permission** to allow your phone's browser (Safari, Chrome, Firefox) to deliver lock-screen push alerts.
+   - **Telegram Instant Dispatch:** Paste your Telegram Bot Token and Chat ID to get instant messages sent directly to your phone via Telegram.
+   - **Webhook Relay:** Supply an IFTTT, Zapier, Discord, or Pushover webhook to route alerts directly to your phone's notification system.
+   - **Phone Quick Share:** Each habit card has a `📲 PHONE` button that utilizes `navigator.share` to push habit specs into your phone's calendar, WhatsApp, or notes app with a single tap.
