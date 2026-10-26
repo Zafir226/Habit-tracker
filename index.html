@@ -1013,8 +1013,9 @@
         }
 
         function saveState() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));if (window.saveHabitsToDrive) window.saveHabitsToDrive();
         }
+        
 
         function saveNotificationSettings() {
             notifyConfig.tgBotToken = document.getElementById('tg-bot-token').value.trim();
@@ -2244,9 +2245,10 @@
         });
     </script>
     <script>
+        <script>
 /* GOOGLE DRIVE SYNC SYSTEM */
-const CLIENT_ID = '679766029527-3qo2r19tpek4a62m6lheo3fl9m1rdsil.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const CLIENT_ID = '679766029527-3qo2r19tpek4a62m6lheo3f19m1rdsil.apps.googleusercontent.com';
+const SCOPE = '[https://www.googleapis.com/auth/drive.appdata](https://www.googleapis.com/auth/drive.appdata)';
 
 let tokenClient;
 let accessToken = null;
@@ -2281,22 +2283,22 @@ window.addEventListener('load', () => {
 async function loadFromDrive() {
   try {
     const query = "name = 'habits.json' and 'appDataFolder' in parents and trashed = false";
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&spaces=appDataFolder&fields=files(id,name)`, {
+    const res = await fetch(`[https://www.googleapis.com/drive/v3/files?q=$](https://www.googleapis.com/drive/v3/files?q=$){encodeURIComponent(query)}&spaces=appDataFolder&fields=files(id,name)`, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     const data = await res.json();
 
     if (data.files && data.files.length > 0) {
       habitFileId = data.files[0].id;
-      const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${habitFileId}?alt=media`, {
+      const fileRes = await fetch(`[https://www.googleapis.com/drive/v3/files/$](https://www.googleapis.com/drive/v3/files/$){habitFileId}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       const driveHabits = await fileRes.json();
 
-      localStorage.setItem('habits', JSON.stringify(driveHabits));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(driveHabits));
       location.reload();
     } else {
-      const localData = JSON.parse(localStorage.getItem('habits') || '[]');
+      const localData = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
       await createDriveFile(localData);
       const statusEl = document.getElementById('sync-status');
       if (statusEl) statusEl.textContent = 'CONNECTED';
@@ -2318,7 +2320,7 @@ async function createDriveFile(content) {
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
   form.append('file', new Blob([JSON.stringify(content)], { type: 'application/json' }));
 
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+  const res = await fetch('[https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart](https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart)', {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
     body: form
@@ -2331,8 +2333,8 @@ window.saveHabitsToDrive = async function() {
   if (!accessToken || !habitFileId) return;
 
   try {
-    const habitsData = localStorage.getItem('habits') || '[]';
-    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${habitFileId}?uploadType=media`, {
+    const habitsData = localStorage.getItem(STORAGE_KEY) || '{}';
+    await fetch(`[https://www.googleapis.com/upload/drive/v3/files/$](https://www.googleapis.com/upload/drive/v3/files/$){habitFileId}?uploadType=media`, {
       method: 'PATCH',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -2346,6 +2348,10 @@ window.saveHabitsToDrive = async function() {
     console.error('Drive Save Error:', err);
   }
 };
+</script>
+</body>
+</html>
+
 </script>
 </body>
 </html>
